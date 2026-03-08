@@ -1,9 +1,7 @@
 import os
 import json
-import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from transformers import BertTokenizer, BertForSequenceClassification
 
 app = FastAPI(title="Exam Anxiety Detector API", version="1.0.0")
 
@@ -21,6 +19,9 @@ import threading
 
 def load_model_background():
     global model, tokenizer, label_mapping, reverse_mapping
+    import torch
+    from transformers import BertTokenizer, BertForSequenceClassification
+    
     model_dir = "models/bert_anxiety_model"
     mapping_file = "models/label_mapping.json"
     
