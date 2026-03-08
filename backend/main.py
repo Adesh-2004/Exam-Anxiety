@@ -17,14 +17,15 @@ tokenizer = None
 label_mapping = {}
 reverse_mapping = {}
 
-@app.on_event("startup")
-def load_model():
+import threading
+
+def load_model_background():
     global model, tokenizer, label_mapping, reverse_mapping
     model_dir = "models/bert_anxiety_model"
     mapping_file = "models/label_mapping.json"
     
     if os.path.exists(model_dir) and os.path.exists(mapping_file):
-        print("Loading pre-trained model...")
+        print("Loading pre-trained model in the background...")
         tokenizer = BertTokenizer.from_pretrained(model_dir)
         model = BertForSequenceClassification.from_pretrained(model_dir)
         model.eval()
@@ -32,8 +33,15 @@ def load_model():
         with open(mapping_file, 'r') as f:
             label_mapping = json.load(f)
             reverse_mapping = {v: k for k, v in label_mapping.items()}
+        print("Model loaded successfully!")
     else:
         print("Model or mapping not found. Please train the model first.")
+
+@app.on_event("startup")
+def startup_event():
+    # Start loading the model in a background thread so Uvicorn can bind the port immediately
+    thread = threading.Thread(target=load_model_background)
+    thread.start()
 
 @app.post("/predict")
 def predict_anxiety(request: TextRequest):
