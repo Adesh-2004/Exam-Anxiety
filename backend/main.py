@@ -44,15 +44,26 @@ def startup_event():
     thread = threading.Thread(target=load_model_background)
     thread.start()
 
+import time
+
 @app.post("/predict")
 def predict_anxiety(request: TextRequest):
+    global model, tokenizer
+    
+    # Wait for the background thread to finish loading the model
+    wait_time = 0
+    while (model is None or tokenizer is None) and wait_time < 120:
+        time.sleep(1)
+        wait_time += 1
+        
     if model is None or tokenizer is None:
-        raise HTTPException(status_code=503, detail="Model is not loaded. Train the model first.")
+        raise HTTPException(status_code=503, detail="Model failed to load or took too long.")
     
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Input text cannot be empty.")
 
     try:
+        import torch
         inputs = tokenizer(
             request.text,
             return_tensors="pt",
